@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+  <title>TBC Detector</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css" rel="stylesheet"/>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&amp;display=swap" rel="stylesheet"/>
+  <style>
+    body {
+      font-family: 'Inter', sans-serif;
+    }
+  </style>
+</head>
+<body class="bg-gray-50">
+  <header class="bg-white shadow">
+    <div class="container mx-auto px-4 py-4 flex justify-between items-center">
+      <div class="flex items-center">
+        <img alt="CT Read Logo" class="h-10 w-10" src="Normal-101.png" width="40" height="40"/>
+        <span class="ml-2 text-xl font-bold">TBC Detector</span>
+      </div>
+      <nav class="flex space-x-6">
+        <a class="text-gray-700 hover:text-blue-600" href="#">Home</a>
+        <a class="text-gray-700 hover:text-blue-600" href="#">CT Scans</a>
+        <a class="text-gray-700 hover:text-blue-600" href="#">Contact</a>
+        <a class="text-gray-700 hover:text-blue-600" href="#">About Us</a>
+      </nav>
+    </div>
+  </header>
+  <main class="container mx-auto px-4 py-16 text-center">
+    <h1 class="text-4xl font-bold text-gray-900">TBC Detector</h1>
+    <p class="text-xl text-blue-600 mt-4">TBC detector using machine learning based on lung X-rays</p>
+    <p class="text-gray-700 mt-4">
+      Users (doctors or medical personnel) can upload an X-ray of the patient's lungs, then the system analyzes it and provides results in the form of a possible TB diagnosis or not. Get instant, accurate, and clear reports powered by AI.
+    </p>
+    <form id="uploadForm" class="mt-16 bg-white shadow rounded-lg p-8">
+      <h2 class="text-xl font-semibold text-gray-900">X-ray Scans</h2>
+      <div id="dropArea" class="mt-8 border-2 border-dashed border-gray-300 p-8 rounded-lg">
+        <div class="flex flex-col items-center">
+          <i class="fas fa-upload text-4xl text-blue-600"></i>
+          <p class="mt-4 text-blue-600">Click to upload or drag and drop</p>
+          <p class="text-gray-500">JPG, JPEG, PNG, or DICOM files supported</p>
+        </div>
+      </div>
+      <input type="file" id="xrayInput" accept=".jpg, .jpeg, .png, .dcm" class="hidden"/>
+      <div id="imagePreview" class="mt-4 flex justify-center"></div> <!-- Preview Container -->
+      <button type="submit" class="mt-8 bg-blue-600 text-white px-6 py-3 rounded-full text-lg hover:bg-blue-700">Start Analyze</button>
+    </form>
+    <div id="result" class="mt-8 hidden">
+      <p id="predictionText" class="text-xl text-gray-800"></p>
+    </div>
+  </main>
+
+  <script>
+    // Select the drop area, file input, and preview container
+    const dropArea = document.getElementById('dropArea');
+    const fileInput = document.getElementById('xrayInput');
+    const imagePreview = document.getElementById('imagePreview');
+
+    // Click event to trigger the file input
+    dropArea.addEventListener('click', () => {
+      fileInput.click();
+    });
+
+    // Drag-and-drop event listeners
+    dropArea.addEventListener('dragover', (event) => {
+      event.preventDefault();
+      dropArea.classList.add('border-blue-600');
+    });
+
+    dropArea.addEventListener('dragleave', () => {
+      dropArea.classList.remove('border-blue-600');
+    });
+
+    dropArea.addEventListener('drop', (event) => {
+      event.preventDefault();
+      dropArea.classList.remove('border-blue-600');
+
+      const files = event.dataTransfer.files;
+      handleFiles(files);
+    });
+
+    // File input change event listener
+    fileInput.addEventListener('change', (event) => {
+      const files = event.target.files;
+      handleFiles(files);
+    });
+
+    // Function to handle files and display a preview
+    function handleFiles(files) {
+      if (files.length > 0) {
+        const file = files[0];
+        if (validateFileType(file)) {
+          displayImagePreview(file);
+        } else {
+          alert('Invalid file type. Please upload a JPG, JPEG, PNG, or DICOM file.');
+        }
+      }
+    }
+
+    // Function to validate the file type
+    function validateFileType(file) {
+      const validTypes = ['image/jpeg', 'image/png', 'image/jpg'];
+      return validTypes.includes(file.type);
+    }
+
+    // Function to display the image preview
+    function displayImagePreview(file) {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        // Clear any existing preview
+        imagePreview.innerHTML = '';
+
+        // Create the image element
+        const img = document.createElement('img');
+        img.src = e.target.result;
+        img.alt = 'X-ray Preview';
+        img.className = 'w-64 h-64 object-cover rounded-lg shadow-md';
+
+        // Create the remove button
+        const removeButton = document.createElement('button');
+        removeButton.textContent = '×';
+        removeButton.className = 'bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center absolute top-2 right-2';
+        removeButton.onclick = () => {
+          imagePreview.innerHTML = '';
+          fileInput.value = ''; // Clear the file input
+        };
+
+        // Wrap the image and button in a container
+        const previewContainer = document.createElement('div');
+        previewContainer.className = 'relative';
+        previewContainer.appendChild(img);
+        previewContainer.appendChild(removeButton);
+
+        // Append the preview container to the image preview element
+        imagePreview.appendChild(previewContainer);
+      };
+      reader.readAsDataURL(file);
+    }
+
+    // Form submission event listener
+    document.getElementById('uploadForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+
+      const file = fileInput.files[0];
+      if (!file) {
+        alert('Harap upload foto rontgen terlebih dahulu.');
+        return;
+      }
+
+      const resultSection = document.getElementById('result');
+      const predictionText = document.getElementById('predictionText');
+
+      resultSection.classList.remove('hidden');
+      predictionText.textContent = "Memproses...";
+
+    });
+      
+
+    document.getElementById('uploadForm').addEventListener('submit',async (e) => {
+      e.preventDefault();
+
+      const file = document.getElementById('xrayinput').files[0];
+      if (!file) {
+        alert("harap upload foto rontgent");
+        return;
+      }
+
+      const formData = new FormData();
+      formData.append('file',file);
+
+      const resultSection = document.getElementById('result');
+      const predictionText = document.getElementById('predictionText');
+
+      resultSection.classList.remove('hidden');
+      predictionText.textContent = "Memproses...";
+
+      try {
+        const response = await fetch('/predict',{
+          method: 'POST',
+          body: formData,
+        });
+
+        if (!response.ok){
+          throw new Error(await response.text());
+        }
+
+        const data = await response.json();
+        predictionText.textContent = 'Hasil: ${data.result}';
+      } catch (eror) {
+        
+        predictionText.textContent = 'Error : ${error.message}';
+      }
+    });
+  </script>
+</body>
+</html>
